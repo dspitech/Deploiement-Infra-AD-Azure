@@ -12,15 +12,55 @@ Import-Module "$here\common.psm1" -Force
 
 Write-EstiamLog "Installation d'IIS pour le dashboard de supervision..." "MONITORING"
 if (-not (Get-WindowsFeature -Name Web-Server).Installed) {
-    Install-WindowsFeature -Name Web-Server, Web-Static-Content, Web-Default-Doc -IncludeManagementTools | Out-Null
+    $installResult = Install-WindowsFeature -Name Web-Server, Web-Static-Content, Web-Default-Doc -IncludeManagementTools
+    if (-not $installResult.Success) {
+        throw "Echec de l'installation du role Web-Server (IIS) : $($installResult.ExitCode)"
+    }
+    Write-EstiamLog "Role IIS (Web-Server) installe avec succes." "MONITORING"
+} else {
+    Write-EstiamLog "Role IIS (Web-Server) deja present." "MONITORING"
+}
+
+# S'assure que le service W3SVC est bien demarre et en demarrage automatique
+Set-Service -Name W3SVC -StartupType Automatic -ErrorAction SilentlyContinue
+if ((Get-Service -Name W3SVC -ErrorAction SilentlyContinue).Status -ne 'Running') {
+    Start-Service -Name W3SVC -ErrorAction SilentlyContinue
+}
+
+# Regle de pare-feu HTTP (normalement creee automatiquement par le role IIS,
+# mais on le force au cas ou pour rester idempotent et robuste)
+if (-not (Get-NetFirewallRule -DisplayName "World Wide Web Services (HTTP Traffic-In)" -ErrorAction SilentlyContinue)) {
+    try {
+        New-NetFirewallRule -DisplayName "World Wide Web Services (HTTP Traffic-In)" -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow | Out-Null
+        Write-EstiamLog "Regle de pare-feu HTTP (port 80) creee." "MONITORING"
+    } catch {
+        Write-EstiamLog "Avertissement regle pare-feu HTTP : $($_.Exception.Message)" "MONITORING"
+    }
 }
 
 $dashboardRoot = "C:\inetpub\wwwroot\estiam"
 New-Item -ItemType Directory -Path $dashboardRoot -Force | Out-Null
 
+Import-Module WebAdministration -ErrorAction SilentlyContinue
+
+# BUG CORRIGE : le document par defaut d'IIS ne contient PAS "index.html" par
+# defaut (seulement Default.htm, Default.asp, index.htm, iisstart.htm). Sans
+# cet ajout, IIS repond 403.14 (Directory Listing Denied) quand on navigue
+# vers http://<serveur>/estiam/ meme si index.html existe bien sur le disque
+# -> c'est la cause du "dashboard qui ne s'affiche pas".
+try {
+    $defaultDocs = Get-WebConfiguration -Filter "system.webServer/defaultDocument/files/*" -PSPath "IIS:\Sites\Default Web Site" -ErrorAction SilentlyContinue
+    $hasIndexHtml = $defaultDocs | Where-Object { $_.value -eq "index.html" }
+    if (-not $hasIndexHtml) {
+        Add-WebConfiguration -Filter "system.webServer/defaultDocument/files" -PSPath "IIS:\Sites\Default Web Site" -Value @{value = "index.html" } | Out-Null
+        Write-EstiamLog "'index.html' ajoute a la liste des documents par defaut d'IIS." "MONITORING"
+    }
+} catch {
+    Write-EstiamLog "Avertissement configuration defaultDocument : $($_.Exception.Message)" "MONITORING"
+}
+
 # S'assure que IIS sert bien les fichiers .json (mappe par defaut sur les
 # versions recentes, mais on le force au cas ou)
-Import-Module WebAdministration -ErrorAction SilentlyContinue
 try {
     $existingMime = Get-WebConfiguration -Filter "system.webServer/staticContent/mimeMap[@fileExtension='.json']" -PSPath "IIS:\" -ErrorAction SilentlyContinue
     if (-not $existingMime) {
