@@ -19,7 +19,7 @@ function Write-EstiamLog {
     Initialize-EstiamPaths
     $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $line = "[$ts][$Component] $Message"
-    Write-Output $line
+    Write-Host $line
     Add-Content -Path "$Global:EstiamLogs\estiam-bootstrap.log" -Value $line
 }
 
