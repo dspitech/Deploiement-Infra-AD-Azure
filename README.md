@@ -6,7 +6,7 @@
 
 | | |
 |---|---|
-| **Statut** | ✅ Stable - prêt pour déploiement lab/démonstration |
+| **Statut** |  Stable - prêt pour déploiement lab/démonstration |
 | **Version** | 1.2.0 - voir [`CHANGELOG.md`](./CHANGELOG.md) |
 | **Portée** | 3 VM Azure (2 contrôleurs de domaine + 1 poste client), domaine `estiam.local` |
 | **Région cible** | `norwayeast` |
@@ -59,33 +59,8 @@ du code).
 
 ## Architecture
 
-```
-                              MICROSOFT AZURE (norwayeast)
-                                        │
-                              Resource Group ESTIAM
-                                        │
-              ┌─────────────────────────┴─────────────────────────┐
-              │                                                     │
-        Virtual Network                                       Key Vault ESTIAM
-        10.10.0.0/16                                    (mot de passe admin,
-              │                                           clé du storage account)
-   ┌──────────┼──────────────────────┐
-   │          │                      │
-Subnet-Estiam │              AzureBastionSubnet
-10.10.10.0/24 │                      │
-   │          │                      └── Azure Bastion (administration
-   │          │                          sans RDP exposé sur Internet)
-   │          │
-   ├── SRV-AD01     10.10.10.10   Windows Server 2022, Standard_B2s
-   │     AD DS (DC1) + DNS + DHCP + Fichiers (D:\Shares) + Sauvegarde (E:)
-   │     FSRM, Shadow Copies, Print Server, Dashboard IIS, BitLocker
-   │
-   ├── DC02         10.10.10.11   Windows Server 2022, Standard_B2s
-   │     AD DS (DC2, réplique) + DNS - haute disponibilité de l'annuaire
-   │
-   └── PC-CLIENT01  10.10.10.20   Windows 11 Entreprise, Standard_B2s
-         Joint au domaine, GPO appliquées, AppLocker, LAPS, BitLocker
-```
+<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/b1fd5658-ef68-49c9-ace8-fbae3f581c2d" />
+
 
 **Principes de conception :**
 
@@ -213,7 +188,7 @@ cp backend.hcl.example backend.hcl
 ### Étape 1 - Déploiement principal
 
 ```bash
-terraform init -backend-config=backend.hcl
+terraform init -backend-config backend.hcl
 cp terraform.tfvars.example terraform.tfvars   # adapter si besoin
 
 export ARM_SUBSCRIPTION_ID="..."
@@ -222,8 +197,7 @@ export ARM_CLIENT_ID="..."       # si Service Principal
 export ARM_CLIENT_SECRET="..."
 export TF_VAR_admin_password="Un-Mot-De-Passe-Fort-2026!"  # sinon généré automatiquement
 
-terraform plan
-terraform apply -auto-approve
+terraform plan && terraform apply -auto-approve
 ```
 
 `location = "norwayeast"` et `vm_size = "Standard_B2s"` sont déjà les
