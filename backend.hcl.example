@@ -1,0 +1,6 @@
+# Copier en backend.hcl et remplacer par les valeurs de sortie de
+# `terraform apply` dans bootstrap-backend/ (terraform output backend_hcl_content)
+resource_group_name  = "rg-estiam-tfstate"
+storage_account_name = "stestiamtfstateXXXXXX"
+container_name        = "tfstate"
+key                   = "estiam.tfstate"

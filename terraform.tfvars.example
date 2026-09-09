@@ -1,0 +1,26 @@
+# Copier ce fichier en terraform.tfvars et l'adapter.
+# NE JAMAIS committer terraform.tfvars (voir .gitignore).
+
+location = "norwayeast"
+vm_size  = "Standard_B2s"
+
+project_name = "estiam"
+environment  = "lab"
+
+ad_domain_name  = "estiam.local"
+ad_netbios_name = "ESTIAM"
+
+admin_username = "estiamadmin"
+# admin_password : à fournir via TF_VAR_admin_password (variable d'environnement)
+# ou via un secret de pipeline CI/CD. Si absent, un mot de passe fort est
+# généré automatiquement par Terraform.
+
+enable_bastion = true
+# allowed_admin_source_ips = ["203.0.113.10/32"]   # uniquement si enable_bastion = false
+
+enable_dhcp = true
+
+# Haute disponibilité / sécurité renforcée (activés par défaut)
+enable_second_dc = true
+enable_bitlocker = true
+# key_vault_authorized_object_ids = ["<object-id-equipe-IT>"]
