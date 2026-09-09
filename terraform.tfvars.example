@@ -27,3 +27,5 @@ enable_dhcp = true
 enable_second_dc = false
 enable_bitlocker = true
 # key_vault_authorized_object_ids = ["<object-id-equipe-IT>"]
+
+accept_client_marketplace_terms = false
