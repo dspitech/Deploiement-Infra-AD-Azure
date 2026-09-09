@@ -226,7 +226,13 @@ resource "azurerm_virtual_machine_extension" "server_bootstrap" {
 # sécurité avant de joindre le client au domaine.
 resource "time_sleep" "wait_for_ad_ready" {
   depends_on      = [azurerm_virtual_machine_extension.server_bootstrap]
-  create_duration = "35m" # pipeline etendu (FSRM, AppLocker, LAPS, backup, monitoring...)
+  create_duration = "50m" # pipeline etendu (DNS, DHCP, OU, groupes, utilisateurs, partages,
+  # permissions, GPO, FSRM, AppLocker, LAPS, audit, backup, monitoring...) : 16 scripts
+  # sequentiels apres le redemarrage post-promotion. 35 min s'est revele insuffisant
+  # (la jonction du client a echoue car l'OU cible n'existait pas encore) -> marge
+  # augmentee. Si l'echec revient, RDP/Bastion sur SRV-AD01 et verifier la progression
+  # dans le journal du script planifie "ESTIAM-Bootstrap" (Planificateur de taches +
+  # transcript PowerShell) avant d'augmenter encore ce delai.
 }
 
 # -----------------------------------------------------------------------------

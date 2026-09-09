@@ -22,6 +22,18 @@ resource "azurerm_key_vault" "this" {
   soft_delete_retention_days = 90
   enable_rbac_authorization  = false
   tags                       = var.tags
+
+  # Delais releves : la lecture des "certificate contacts" par le provider
+  # (appel automatique fait par azurerm apres creation/refresh) a echoue avec
+  # "context deadline exceeded" lors d'un apply charge (plusieurs VM + extensions
+  # en parallele). Timeouts plus larges pour eviter un echec sur simple lenteur
+  # reseau/API plutot qu'une vraie erreur de configuration.
+  timeouts {
+    create = "15m"
+    read   = "15m"
+    update = "15m"
+    delete = "15m"
+  }
 }
 
 # Acces complet pour l'identite qui execute Terraform (necessaire pour ecrire

@@ -20,7 +20,10 @@ enable_bastion = true
 
 enable_dhcp = true
 
-# Haute disponibilité / sécurité renforcée (activés par défaut)
-enable_second_dc = true
+# Haute disponibilité / sécurité renforcée
+# enable_second_dc = true  # nécessite un quota standardBSFamily d'au moins 6 coeurs
+#                          # dans la région choisie (2 vCPU x 3 VM). Laisser à false
+#                          # (un seul DC, SRV-AD01) tant que le quota n'a pas été augmenté.
+enable_second_dc = false
 enable_bitlocker = true
 # key_vault_authorized_object_ids = ["<object-id-equipe-IT>"]

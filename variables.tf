@@ -190,9 +190,9 @@ variable "dhcp_default_gateway" {
 # -----------------------------------------------------------------------------
 
 variable "enable_second_dc" {
-  description = "Déploie un second contrôleur de domaine (DC02) pour éliminer le point de défaillance unique."
+  description = "Déploie un second contrôleur de domaine (DC02) pour éliminer le point de défaillance unique. Désactivé par défaut : un seul DC (SRV-AD01) suffit pour le lab et évite de dépasser le quota de coeurs standardBSFamily de l'abonnement."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "dc02_vm_name" {
