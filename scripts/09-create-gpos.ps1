@@ -145,9 +145,9 @@ Set-GPRegistryValue -Name $gpoDef.DisplayName -Key "HKLM\Software\Policies\Micro
     -ValueName "DisableAntiSpyware" -Type DWord -Value 0 | Out-Null
 Set-GPRegistryValue -Name $gpoDef.DisplayName -Key "HKLM\Software\Policies\Microsoft\Windows Defender\Real-Time Protection" `
     -ValueName "DisableRealtimeMonitoring" -Type DWord -Value 0 | Out-Null
-foreach ($profile in @("DomainProfile", "StandardProfile", "PublicProfile")) {
+foreach ($fwProfile in @("DomainProfile", "StandardProfile", "PublicProfile")) {
     Set-GPRegistryValue -Name $gpoDef.DisplayName `
-        -Key "HKLM\Software\Policies\Microsoft\WindowsFirewall\$profile" `
+        -Key "HKLM\Software\Policies\Microsoft\WindowsFirewall\$fwProfile" `
         -ValueName "EnableFirewall" -Type DWord -Value 1 | Out-Null
 }
 Set-GpoLinkIfMissing -GpoName $gpoDef.DisplayName -TargetDN $workstationsOuDN

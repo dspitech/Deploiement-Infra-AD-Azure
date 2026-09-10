@@ -102,7 +102,7 @@ $disks = Get-SafeValue {
 
 $services = @("NTDS", "DNS", "DHCPServer", "Netlogon", "W3SVC", "AppIDSvc") | ForEach-Object {
     $svc = Get-Service -Name $_ -ErrorAction SilentlyContinue
-    [PSCustomObject]@{ Name = $_; Status = if ($svc) { $svc.Status.ToString() } else { "AbsentE" } }
+    [PSCustomObject]@{ Name = $_; Status = if ($svc) { $svc.Status.ToString() } else { "Absent" } }
 }
 
 $adStats = Get-SafeValue {
