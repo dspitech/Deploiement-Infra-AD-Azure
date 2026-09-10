@@ -10,3 +10,7 @@ variable "bastion_subnet_id" {
 }
 variable "enable_bastion" { type = bool }
 variable "allowed_admin_source_ips" { type = list(string) }
+variable "bastion_subnet_prefix" {
+  type    = string
+  default = null
+}

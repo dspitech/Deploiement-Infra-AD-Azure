@@ -112,13 +112,26 @@ Set-GpoLinkIfMissing -GpoName $gpoTerminal.DisplayName -TargetDN $usersOuDN
 # Filtrage de securite : retirer "Utilisateurs authentifies", ajouter les
 # groupes qui NE DOIVENT PAS avoir de terminal (tous sauf IT), et refuser
 # explicitement l'application au groupe IT.
+#
+# IMPORTANT : Set-GPPermission resout les comptes via le Global Catalog. Juste
+# apres une promotion DCPROMO, le GC peut ne pas encore etre annonce (jusqu'a
+# quelques minutes), et dans ce cas l'appel RESTE BLOQUE indefiniment au lieu
+# de lever une exception -> le try/catch ci-dessous ne suffit pas a proteger
+# l'etape. On attend explicitement que le GC soit pret avant de continuer.
+Write-EstiamLog "Verification de la disponibilite du Global Catalog avant filtrage de securite GPO..." "GPO"
+if (-not (Wait-ForGlobalCatalog -TimeoutSeconds 300)) {
+    Write-EstiamLog "Avertissement : Global Catalog toujours indisponible apres 5 minutes, poursuite malgre tout." "GPO"
+} else {
+    Write-EstiamLog "Global Catalog disponible." "GPO"
+}
+
 try {
     Set-GPPermission -Name $gpoTerminal.DisplayName -TargetName "Authenticated Users" -TargetType Group `
-        -PermissionLevel None -Replace -ErrorAction SilentlyContinue | Out-Null
+        -PermissionLevel None -Replace -ErrorAction Stop | Out-Null
     Set-GPPermission -Name $gpoTerminal.DisplayName -TargetName "Domain Users" -TargetType Group `
-        -PermissionLevel GpoApply | Out-Null
+        -PermissionLevel GpoApply -ErrorAction Stop | Out-Null
     Set-GPPermission -Name $gpoTerminal.DisplayName -TargetName "GG-ESTIAM-IT" -TargetType Group `
-        -PermissionLevel GpoRead | Out-Null
+        -PermissionLevel GpoRead -ErrorAction Stop | Out-Null
     Write-EstiamLog "Filtrage de securite applique : GG-ESTIAM-IT exclu de GPO-ESTIAM-Restrict-Terminal." "GPO"
 } catch {
     Write-EstiamLog "Avertissement filtrage securite terminal : $($_.Exception.Message)" "GPO"

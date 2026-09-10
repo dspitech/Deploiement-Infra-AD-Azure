@@ -34,4 +34,13 @@ $adapter = Get-NetAdapter | Where-Object { $_.Status -eq "Up" } | Select-Object 
 Set-DnsClientServerAddress -InterfaceIndex $adapter.ifIndex -ServerAddresses ("127.0.0.1", $Config.ServerIp)
 Write-EstiamLog "Client DNS local pointe vers lui-meme." "DNS"
 
+# Autorise le ping (ICMPv4 Echo Request) en entree : le pare-feu Windows le
+# bloque par defaut, ce qui empeche tout test de connectivite vers/depuis le
+# client (section reseau du cahier des charges).
+if (-not (Get-NetFirewallRule -DisplayName "Allow ICMPv4-In (Ping)" -ErrorAction SilentlyContinue)) {
+    New-NetFirewallRule -DisplayName "Allow ICMPv4-In (Ping)" -Direction Inbound -Protocol ICMPv4 `
+        -IcmpType 8 -Action Allow -Profile Any | Out-Null
+    Write-EstiamLog "Regle de pare-feu ICMPv4 (ping) creee." "DNS"
+}
+
 Write-EstiamLog "Configuration DNS terminee." "DNS"

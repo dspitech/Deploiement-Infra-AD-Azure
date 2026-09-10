@@ -13,6 +13,15 @@ Import-Module "$here\common.psm1" -Force
 Initialize-EstiamPaths
 Write-EstiamLog "=== Debut client-hardening.ps1 (poste client) ===" "HARDENING"
 
+# Autorise le ping (ICMPv4 Echo Request) en entree, sinon le poste client ne
+# repond a aucun ping depuis SRV-AD01 (pare-feu Windows bloque ICMP par
+# defaut, meme une fois les GPO durcissement appliquees).
+if (-not (Get-NetFirewallRule -DisplayName "Allow ICMPv4-In (Ping)" -ErrorAction SilentlyContinue)) {
+    New-NetFirewallRule -DisplayName "Allow ICMPv4-In (Ping)" -Direction Inbound -Protocol ICMPv4 `
+        -IcmpType 8 -Action Allow -Profile Any | Out-Null
+    Write-EstiamLog "Regle de pare-feu ICMPv4 (ping) creee sur le client." "HARDENING"
+}
+
 # Force la remontee immediate des GPO du domaine (sinon jusqu'a 90-120 min)
 Write-EstiamLog "Application immediate des GPO (gpupdate /force)..." "HARDENING"
 gpupdate /force /target:computer 2>&1 | Out-Null

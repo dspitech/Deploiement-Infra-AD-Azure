@@ -28,6 +28,26 @@ resource "azurerm_network_security_group" "main" {
     }
   }
 
+  # RDP explicitement autorisé depuis le sous-réseau Azure Bastion (SRV-AD01
+  # et PC-CLIENT01 doivent tous les deux être joignables en RDP depuis
+  # Bastion). Redondant avec la règle par défaut AllowVnetInBound, mais rendu
+  # explicite pour éviter toute dépendance implicite et pour rester correct
+  # si une règle Deny plus prioritaire est ajoutée par la suite.
+  dynamic "security_rule" {
+    for_each = var.enable_bastion ? [1] : []
+    content {
+      name                       = "Allow-RDP-From-Bastion"
+      priority                   = 110
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = "*"
+      destination_port_range     = "3389"
+      source_address_prefix      = var.bastion_subnet_prefix
+      destination_address_prefix = "*"
+    }
+  }
+
   # Blocage explicite de tout accès entrant direct depuis Internet
   security_rule {
     name                       = "Deny-Internet-Inbound"

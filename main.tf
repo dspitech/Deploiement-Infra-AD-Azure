@@ -39,6 +39,7 @@ module "security" {
   resource_group_name       = module.network.resource_group_name
   main_subnet_id            = module.network.main_subnet_id
   bastion_subnet_id         = module.network.bastion_subnet_id
+  bastion_subnet_prefix     = var.bastion_subnet_prefix
   enable_bastion            = var.enable_bastion
   allowed_admin_source_ips  = var.allowed_admin_source_ips
 }

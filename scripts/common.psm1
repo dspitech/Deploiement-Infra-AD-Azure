@@ -80,4 +80,27 @@ function Wait-ForActiveDirectory {
     return $false
 }
 
+# Attend que le Global Catalog soit annoncé (enregistrement DNS _gc._tcp +
+# indicateur NTDS Settings). Indispensable AVANT tout appel GPMC qui touche
+# aux permissions (Set-GPPermission), car ces cmdlets résolvent les comptes
+# via le GC et RESTENT BLOQUÉS (sans lever d'exception, donc sans etre
+# rattrapes par un try/catch) si le GC n'est pas encore pret - ce qui peut
+# prendre plusieurs minutes juste apres une promotion DCPROMO, meme si
+# Get-ADDomain (utilise par Wait-ForActiveDirectory) repond deja.
+function Wait-ForGlobalCatalog {
+    param([int]$TimeoutSeconds = 300)
+    $elapsed = 0
+    while ($elapsed -lt $TimeoutSeconds) {
+        try {
+            $dc = Get-ADDomainController -Discover -Service GlobalCatalog -ErrorAction Stop
+            if ($dc) { return $true }
+        } catch {
+            # Pas encore annonce, on reessaie
+        }
+        Start-Sleep -Seconds 10
+        $elapsed += 10
+    }
+    return $false
+}
+
 Export-ModuleMember -Function * -Variable EstiamRoot, EstiamLogs, EstiamStageFile
