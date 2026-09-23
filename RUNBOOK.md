@@ -45,7 +45,7 @@ Set-ADUser -Identity jdupont -ChangePasswordAtLogon $true
 ## 4. Vérifier la santé globale de l'infrastructure
 
 ```powershell
-C:\ESTIAM\Scripts\17-run-security-checks.ps1 -Config (Get-Content C:\ESTIAM\config.json -Raw | ConvertFrom-Json)
+.\scripts\19-security-checks\19-run-security-checks.ps1   # depuis le dossier du projet copié sur SRV-AD01
 Get-Content C:\ESTIAM\security-check-report.json | ConvertFrom-Json | Select -ExpandProperty Checks
 ```
 

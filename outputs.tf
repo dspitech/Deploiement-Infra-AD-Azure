@@ -23,10 +23,6 @@ output "key_vault_name" {
   value       = module.keyvault.key_vault_name
 }
 
-output "domain_name" {
-  value = var.ad_domain_name
-}
-
 output "admin_username" {
   value = var.admin_username
 }
@@ -39,6 +35,11 @@ output "admin_password" {
 
 output "bastion_enabled" {
   value = var.enable_bastion
+}
+
+output "next_steps" {
+  description = "Étape suivante après terraform apply."
+  value       = "VM créées. Se connecter à ${var.server_vm_name} (Bastion) puis exécuter les scripts du dossier scripts/ en commençant par 01-active-directory. Voir README.md."
 }
 
 output "how_to_connect" {

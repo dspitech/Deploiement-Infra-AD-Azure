@@ -1,0 +1,10 @@
+{
+  "DomainName": "estiam.local",
+  "NetbiosName": "ESTIAM",
+  "ServerIp": "10.10.10.10",
+  "Departments": ["Direction", "IT", "RH", "Finance", "Marketing", "Administration"],
+  "EnableDhcp": true,
+  "DhcpScopeStart": "10.10.10.100",
+  "DhcpScopeEnd": "10.10.10.200",
+  "DhcpGateway": "10.10.10.1"
+}

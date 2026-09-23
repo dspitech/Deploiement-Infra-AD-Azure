@@ -25,27 +25,27 @@ faire évoluer, même dans un cadre pédagogique.
 | Comptes de service | `svc-<usage>` | `svc-backup` |
 | Groupes métier | `GG-ESTIAM-<SERVICE>` | `GG-ESTIAM-IT` |
 | Groupes ressources | `GG-FS-<RESSOURCE>-<DROIT>` | `GG-FS-FINANCE-RW` |
-| Scripts d'étape serveur | `<NN>-<action>.ps1`, numérotés dans l'ordre d'exécution | `10-configure-fsrm.ps1` |
+| Scripts d'étape serveur | `scripts/<NN>-<service>/<NN>-<action>.ps1`, numérotés dans l'ordre d'exécution | `11-fsrm/11-configure-fsrm.ps1` |
 | GPO | `GPO-ESTIAM-<OBJET>` | `GPO-ESTIAM-USB-Restriction` |
 
-## Ajouter une nouvelle étape d'automatisation serveur
+## Ajouter un nouveau script de service
 
-1. Créer le script dans `scripts/`, numéroté après la dernière étape
-   existante (`18-...ps1`, etc.), avec le même en-tête `param([Parameter(Mandatory=$true)]$Config)`
-   et `Import-Module "$here\common.psm1"`.
-2. Rendre le script **idempotent** : vérifier l'existence d'une ressource
+1. Créer un dossier `scripts/<NN>-<service>/` (numéroté après le dernier
+   existant) contenant `<NN>-<action>.ps1`.
+2. Reprendre l'en-tête des scripts existants : `#Requires -RunAsAdministrator`,
+   `param([string]$ConfigPath)`, import de `..\00-common\common.psm1`, puis
+   `$Config = Get-EstiamConfig -Path $ConfigPath`.
+3. Rendre le script **idempotent** : vérifier l'existence d'une ressource
    avant de la créer (voir les scripts existants pour le pattern).
-3. Ajouter le script à la liste `server_script_files` dans
-   `modules/compute/main.tf` (sinon il ne sera pas téléchargé sur la VM).
-4. Ajouter l'étape à la liste `$steps` dans `scripts/Bootstrap-Server.ps1`.
-5. Documenter la nouvelle étape dans le tableau du README
-   (« Détail des étapes d'automatisation serveur »).
-6. Mettre à jour `CHANGELOG.md`.
+4. Rester en **ASCII** (pas d'accents) dans les `.ps1` pour rester compatible
+   Windows PowerShell 5.1.
+5. Ajouter l'étape à la liste `$steps` de `scripts/Run-All.ps1`.
+6. Documenter l'étape dans le README et mettre à jour `CHANGELOG.md`.
 
 ## Modifier une ressource Terraform existante
 
 1. Identifier le bon module (`modules/network`, `modules/security`,
-   `modules/storage`, `modules/keyvault`, `modules/compute`) plutôt que de
+   `modules/keyvault`, `modules/compute`) plutôt que de
    dupliquer une ressource dans `main.tf` racine.
 2. Exposer toute nouvelle valeur nécessaire ailleurs via `outputs.tf` du
    module, jamais via des références croisées directes entre modules.

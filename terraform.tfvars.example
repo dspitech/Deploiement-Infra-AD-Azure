@@ -7,9 +7,6 @@ vm_size  = "Standard_B2s"
 project_name = "estiam"
 environment  = "lab"
 
-ad_domain_name  = "estiam.local"
-ad_netbios_name = "ESTIAM"
-
 admin_username = "estiamadmin"
 # admin_password : à fournir via TF_VAR_admin_password (variable d'environnement)
 # ou via un secret de pipeline CI/CD. Si absent, un mot de passe fort est
@@ -18,10 +15,11 @@ admin_username = "estiamadmin"
 enable_bastion = true
 # allowed_admin_source_ips = ["203.0.113.10/32"]   # uniquement si enable_bastion = false
 
-enable_dhcp = true
+# NB : le domaine AD, le DHCP, etc. ne sont plus gérés par Terraform ;
+# ils se règlent dans scripts/00-common/config.json (voir README).
 
 # Haute disponibilité / sécurité renforcée
-# enable_second_dc = true  # nécessite un quota standardBSFamily d'au moins 6 coeurs
+# enable_second_dc = true  # (VM DC02) nécessite un quota standardBSFamily d'au moins 6 coeurs
 #                          # dans la région choisie (2 vCPU x 3 VM). Laisser à false
 #                          # (un seul DC, SRV-AD01) tant que le quota n'a pas été augmenté.
 enable_second_dc = false

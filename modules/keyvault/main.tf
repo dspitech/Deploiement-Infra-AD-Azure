@@ -1,7 +1,6 @@
 # =============================================================================
-# Module keyvault : centralise les secrets du projet (mot de passe admin,
-# cle du compte de stockage) pour audit/rotation, plutot que de les laisser
-# uniquement dans l'etat Terraform.
+# Module keyvault : centralise le mot de passe admin du projet pour
+# audit/rotation, plutot que de le laisser uniquement dans l'etat Terraform.
 # =============================================================================
 
 data "azurerm_client_config" "current" {}
@@ -61,15 +60,6 @@ resource "azurerm_key_vault_secret" "admin_password" {
   value        = var.admin_password
   key_vault_id = azurerm_key_vault.this.id
   content_type = "Mot de passe administrateur local + domaine (genere par Terraform)"
-
-  depends_on = [azurerm_key_vault_access_policy.terraform_operator]
-}
-
-resource "azurerm_key_vault_secret" "storage_account_key" {
-  name         = "estiam-scripts-storage-key"
-  value        = var.storage_account_key
-  key_vault_id = azurerm_key_vault.this.id
-  content_type = "Cle du compte de stockage hebergeant les scripts PowerShell"
 
   depends_on = [azurerm_key_vault_access_policy.terraform_operator]
 }

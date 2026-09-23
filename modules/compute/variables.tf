@@ -21,38 +21,21 @@ variable "client_os_offer" { type = string }
 variable "client_os_sku" { type = string }
 variable "accept_client_marketplace_terms" { type = bool }
 
-variable "ad_domain_name" { type = string }
-variable "ad_netbios_name" { type = string }
-variable "departments" { type = list(string) }
-
-variable "enable_dhcp" { type = bool }
-variable "dhcp_scope_start" { type = string }
-variable "dhcp_scope_end" { type = string }
-variable "dhcp_default_gateway" { type = string }
-
-variable "storage_account_name" { type = string }
-variable "storage_account_id" { type = string }
-variable "storage_account_key" {
-  type      = string
-  sensitive = true
-}
-variable "scripts_blob_base_url" { type = string }
-
 variable "key_vault_id" {
-  description = "ID du Key Vault ESTIAM (pour donner aux VM un acces en lecture a leurs propres secrets via identite managee)."
+  description = "ID du Key Vault ESTIAM (accès en lecture aux secrets pour l'identité managée des VM)."
   type        = string
 }
 
 variable "enable_bitlocker" {
-  description = "Active le chiffrement BitLocker (Trusted Launch : vTPM + Secure Boot) sur les VM."
+  description = "Active Trusted Launch (vTPM + Secure Boot) sur les VM, prérequis de BitLocker avec protecteur TPM."
   type        = bool
   default     = true
 }
 
 variable "enable_second_dc" {
-  description = "Deploie un second controleur de domaine (DC02) pour la haute disponibilite AD."
+  description = "Déploie la VM DC02 (second contrôleur de domaine, à promouvoir avec scripts/02-second-dc)."
   type        = bool
-  default     = true
+  default     = false
 }
 variable "dc02_vm_name" {
   type    = string

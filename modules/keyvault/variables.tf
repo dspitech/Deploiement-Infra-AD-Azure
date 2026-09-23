@@ -8,10 +8,6 @@ variable "admin_password" {
   type      = string
   sensitive = true
 }
-variable "storage_account_key" {
-  type      = string
-  sensitive = true
-}
 
 variable "authorized_object_ids" {
   description = "Object IDs (utilisateurs/SP humains) autorises a lire les secrets, ex: l'operateur qui lance terraform apply."

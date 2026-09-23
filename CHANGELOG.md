@@ -3,6 +3,32 @@
 Toutes les évolutions notables de ce projet sont documentées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/).
 
+## [2.0.0] - Terraform = Azure uniquement, scripts exécutés manuellement
+
+### Modifié
+- **Terraform ne déploie plus que les ressources Azure** : réseau, NSG,
+  Bastion, Key Vault, VM `SRV-AD01` + `PC-CLIENT01` (+ `DC02` optionnelle) et
+  leurs disques. Plus aucune Custom Script Extension, plus de `time_sleep`,
+  plus de jonction automatique du client.
+- Les scripts PowerShell sont **rangés en un dossier par service**
+  (`scripts/01-active-directory` ... `scripts/20-client-pc`) et lancés à la
+  main. Configuration commune dans `scripts/00-common/config.json`.
+- Les mots de passe (DSRM, compte de domaine) sont **demandés à l'exécution**
+  au lieu d'être injectés par Terraform.
+- L'étape « Shadow Copies + serveur d'impression » est scindée en deux
+  dossiers (`12-shadow-copies`, `13-print-server`).
+- Le script de connexion NETLOGON utilise le nom réel du serveur.
+
+### Supprimé
+- Module `storage` (hébergement des scripts), provider `time`,
+  `Bootstrap-Server.ps1` et la tâche planifiée de continuation.
+- Variables Terraform `ad_domain_name`, `ad_netbios_name`, `departments`,
+  `enable_dhcp`, `dhcp_*` (désormais dans `config.json`).
+
+### Ajouté
+- `scripts/Run-All.ps1` : enchaîne facultativement les étapes 03 à 19.
+- `scripts/20-client-pc/01-join-domain.ps1` : jonction manuelle du client.
+
 ## [1.2.0] - Résilience et sécurité renforcée
 
 ### Ajouté

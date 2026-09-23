@@ -1,5 +1,6 @@
 # =============================================================================
-# ESTIAM - Infrastructure Active Directory automatisée (Azure + Terraform)
+# ESTIAM - Infrastructure Azure (Terraform) : réseau, sécurité, Key Vault, VM
+# La configuration Windows / AD est faite à la main via le dossier scripts/
 # =============================================================================
 
 resource "random_password" "admin" {
@@ -44,17 +45,6 @@ module "security" {
   allowed_admin_source_ips  = var.allowed_admin_source_ips
 }
 
-module "storage" {
-  source = "./modules/storage"
-
-  project_name         = var.project_name
-  environment          = var.environment
-  location             = var.location
-  tags                 = var.tags
-  resource_group_name  = module.network.resource_group_name
-  scripts_dir          = "${path.module}/scripts"
-}
-
 module "keyvault" {
   source = "./modules/keyvault"
 
@@ -64,7 +54,6 @@ module "keyvault" {
   tags                  = var.tags
   resource_group_name   = module.network.resource_group_name
   admin_password        = local.admin_password_effective
-  storage_account_key   = module.storage.primary_access_key
   authorized_object_ids = var.key_vault_authorized_object_ids
 }
 
@@ -90,20 +79,6 @@ module "compute" {
   client_os_offer                 = var.client_os_offer
   client_os_sku                   = var.client_os_sku
   accept_client_marketplace_terms = var.accept_client_marketplace_terms
-
-  ad_domain_name  = var.ad_domain_name
-  ad_netbios_name = var.ad_netbios_name
-  departments     = var.departments
-
-  enable_dhcp           = var.enable_dhcp
-  dhcp_scope_start      = var.dhcp_scope_start
-  dhcp_scope_end        = var.dhcp_scope_end
-  dhcp_default_gateway  = var.dhcp_default_gateway
-
-  storage_account_name   = module.storage.storage_account_name
-  storage_account_id     = module.storage.storage_account_id
-  storage_account_key    = module.storage.primary_access_key
-  scripts_blob_base_url  = module.storage.blob_base_url
 
   key_vault_id     = module.keyvault.key_vault_id
   enable_bitlocker = var.enable_bitlocker

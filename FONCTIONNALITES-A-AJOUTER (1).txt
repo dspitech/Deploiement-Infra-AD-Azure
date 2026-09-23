@@ -1,0 +1,366 @@
+=====================================================================
+ ESTIAM - FONCTIONNALITES QUI POURRAIENT ETRE AJOUTEES AU PROJET
+=====================================================================
+
+Legende de priorite :
+  [P1] = important pour une vraie entreprise (a faire en premier)
+  [P2] = utile, apporte un vrai gain
+  [P3] = bonus / amelioration de confort
+
+Legende de nature :
+  (TF) = a ajouter dans Terraform (ressources Azure)
+  (PS) = a ajouter sous forme de script PowerShell (nouveau dossier)
+  (DOC) = documentation / organisation
+
+
+=====================================================================
+ 1. HAUTE DISPONIBILITE ET RESILIENCE
+=====================================================================
+
+[P1] (TF) Second controleur de domaine actif par defaut
+     Deja possible (enable_second_dc). Le rendre standard pour ne plus
+     avoir de point de defaillance unique.
+
+[P1] (TF) Zones de disponibilite Azure
+     Placer SRV-AD01 et DC02 dans des zones differentes (zone 1 / zone 2).
+
+[P2] (TF) Groupe a haute disponibilite (Availability Set)
+     Alternative aux zones dans les regions qui n'en ont pas.
+
+[P2] (PS) DFS Namespaces + DFS Replication
+     Chemins de partage unifies (\\estiam.local\Partages) et replication
+     des fichiers entre deux serveurs de fichiers.
+
+[P2] (PS) Cluster de fichiers ou serveur de fichiers separe
+     Sortir le role "fichiers" du controleur de domaine.
+
+[P3] (PS) DHCP en failover
+     Utile uniquement en dehors d'Azure (voir limite du DHCP dans Azure).
+
+
+=====================================================================
+ 2. SEPARATION DES ROLES (ARCHITECTURE)
+=====================================================================
+
+[P1] (TF) Serveur de fichiers dedie (SRV-FILE01)
+     Un controleur de domaine ne devrait faire QUE du controle de domaine.
+     Deplacer partages, FSRM, shadow copies, impression, IIS.
+
+[P1] (TF) Plusieurs sous-reseaux
+     Sous-reseau des DC, des serveurs, des postes, de l'administration.
+     Un NSG par sous-reseau avec regles strictes entre eux.
+
+[P2] (TF) Serveur d'administration (jump / bastion interne)
+     Poste dedie (PAW) pour administrer AD, au lieu de le faire depuis
+     le controleur de domaine.
+
+[P2] (TF) Hub-and-spoke
+     Reseau central (hub) + reseaux par usage (spokes), avec peering.
+
+[P3] (TF) Azure Firewall
+     Filtrage sortant centralise (URL, categories, journalisation).
+
+
+=====================================================================
+ 3. CONNECTIVITE HYBRIDE
+=====================================================================
+
+[P1] (TF) VPN Site-a-Site ou ExpressRoute
+     Relier le reseau de l'entreprise a Azure.
+
+[P2] (TF) VPN Point-a-Site
+     Acces distant des administrateurs sans passer par le portail.
+
+[P2] (TF) DNS prive Azure + resolveur DNS
+     Resolution de noms entre reseau local et Azure.
+
+[P3] (TF) Azure Private Link / points de terminaison prives
+     Acces prive au Key Vault et au stockage.
+
+
+=====================================================================
+ 4. SAUVEGARDE ET REPRISE APRES SINISTRE
+=====================================================================
+
+[P1] (TF) Azure Backup + coffre Recovery Services
+     Sauvegarde des VM hors de la VM elle-meme, avec retention et
+     restauration granulaire. Corrige la limite majeure actuelle (la
+     sauvegarde Windows est sur un disque de la meme VM).
+
+[P1] (DOC) Test de restauration planifie et documente
+     Restaurer regulierement et consigner le resultat (RUNBOOK).
+
+[P2] (TF) Azure Site Recovery
+     Replication des VM vers une autre region (plan de reprise).
+
+[P2] (TF) Verrous de suppression sur les ressources critiques
+     Empeche un "terraform destroy" ou une suppression accidentelle.
+
+[P2] (TF) Stockage geo-redondant (GRS) pour les sauvegardes
+     Survit a la perte d'une region.
+
+[P3] (PS) Sauvegarde de l'etat AD (System State) exportee vers Azure
+     Copie supplementaire hors serveur.
+
+
+=====================================================================
+ 5. IDENTITE ET ACCES
+=====================================================================
+
+[P1] (DOC/TF) Authentification multifacteur (MFA)
+     Via Microsoft Entra ID pour les acces Azure et Bastion.
+
+[P1] (PS) Modele d'administration par niveaux (Tiering 0/1/2)
+     Comptes d'administration separes par niveau, interdiction de se
+     connecter avec un compte Tier 0 sur un poste ou serveur de tier
+     inferieur.
+
+[P2] (PS) Groupe "Protected Users" et politiques de silo d'authentification
+     Protege les comptes a privileges (pas de NTLM, Kerberos renforce).
+
+[P2] (TF) Microsoft Entra Connect (synchronisation hybride)
+     Synchroniser AD avec Entra ID pour Microsoft 365 et l'authentification
+     unique dans le cloud.
+
+[P2] (PS) Politiques de mots de passe granulaires (Fine-Grained)
+     Regles plus strictes pour les comptes admin que pour les utilisateurs.
+
+[P2] (PS) Gestion des comptes de service par gMSA
+     Remplace svc-backup a mot de passe fixe par un compte a mot de passe
+     gere automatiquement par AD.
+
+[P3] (PS) Entra Password Protection (liste de mots de passe interdits)
+[P3] (PS) Auto-service de reinitialisation de mot de passe (SSPR)
+[P3] (PS) Just-In-Time Access (Azure PIM) pour les roles Azure
+
+
+=====================================================================
+ 6. SECURITE RENFORCEE
+=====================================================================
+
+[P1] (TF) Microsoft Defender for Cloud (plan serveur)
+     Recommandations de securite, detection de menaces, conformite.
+
+[P1] (PS) Durcissement selon les baselines
+     Appliquer les baselines Microsoft Security Compliance Toolkit ou
+     CIS Benchmark (Windows Server 2022, Windows 11) via GPO.
+
+[P1] (PS) Desactivation de protocoles obsoletes
+     SMBv1, NTLMv1, LLMNR, NetBIOS, TLS 1.0/1.1.
+
+[P2] (PS) Signature SMB et LDAP obligatoire (LDAP signing / channel binding)
+[P2] (PS) Pare-feu Windows : regles GPO precises par role
+[P2] (PS) Pare-feu applicatif / NSG plus fins (ports AD uniquement)
+[P2] (TF) Chiffrement des disques par cle geree par le client (CMK)
+     Avec Azure Disk Encryption ou Disk Encryption Set + Key Vault.
+[P2] (TF) Key Vault en mode RBAC + acces prive uniquement
+[P2] (PS) Outils d'evaluation AD : PingCastle / Purple Knight
+     Score de sante et de securite de l'annuaire, a rejouer regulierement.
+[P3] (PS) Microsoft Defender for Identity (detection d'attaques sur AD)
+[P3] (PS) Credential Guard et Device Guard sur les postes
+[P3] (PS) Windows Hello for Business
+[P3] (PS) Corbeille AD (AD Recycle Bin) activee
+     Permet de restaurer un objet supprime par erreur.
+
+
+=====================================================================
+ 7. INFRASTRUCTURE A CLES PUBLIQUES (PKI)
+=====================================================================
+
+[P2] (PS) AD Certificate Services (autorite de certification interne)
+     Certificats pour les serveurs, postes, utilisateurs, LDAPS, 802.1X.
+     Ideal : CA racine hors ligne + CA emettrice.
+
+[P2] (PS) LDAPS (LDAP sur TLS) sur les controleurs de domaine
+[P3] (PS) Auto-enrolement des certificats par GPO
+[P3] (PS) Certificats pour IIS (HTTPS sur le dashboard)
+
+
+=====================================================================
+ 8. GESTION DES POSTES ET LOGICIELS
+=====================================================================
+
+[P1] (PS) WSUS ou Azure Update Manager
+     Gestion centralisee des mises a jour Windows (validation, anneaux,
+     fenetres de maintenance).
+
+[P2] (PS) Deploiement de logiciels (GPO, MSI, Intune ou Configuration Manager)
+[P2] (PS) Installation de logiciels via Winget / Chocolatey
+[P2] (PS) Redirection de dossiers (Bureau, Documents) vers le serveur
+[P2] (PS) Profils itinerants ou FSLogix
+[P2] (PS) Modeles administratifs centralises (Central Store ADMX)
+     Dossier PolicyDefinitions dans SYSVOL pour gerer Edge, Office, etc.
+[P3] (PS) Preferences GPO : lecteurs reseau, imprimantes, raccourcis
+     (a la place du script de connexion actuel).
+[P3] (PS) Windows Autopilot + Intune (gestion moderne des postes)
+[P3] (PS) Fond d'ecran, ecran de verrouillage et branding par GPO
+[P3] (PS) Gestion de l'energie et du redemarrage automatique
+
+
+=====================================================================
+ 9. SERVICES DE FICHIERS ET IMPRESSION
+=====================================================================
+
+[P2] (PS) Azure Files avec authentification AD, ou Azure File Sync
+     Partages hybrides et sauvegarde integree.
+[P2] (PS) Enumeration basee sur l'acces (Access-Based Enumeration)
+     Les utilisateurs ne voient que les dossiers auxquels ils ont acces.
+[P2] (PS) Rapports FSRM (doublons, gros fichiers, fichiers anciens)
+[P2] (PS) Classification de fichiers et notifications de quota par e-mail
+[P3] (PS) Deduplication de donnees sur le volume D:
+[P3] (PS) Serveur d'impression avec vrais pilotes et files par service
+[P3] (PS) Chiffrement SMB (SMB Encryption) sur les partages sensibles
+
+
+=====================================================================
+ 10. SUPERVISION, JOURNAUX ET ALERTES
+=====================================================================
+
+[P1] (TF) Espace de travail Log Analytics + agent Azure Monitor
+     Collecter les journaux Windows (securite, AD, systeme) de toutes les
+     VM dans un endroit central.
+
+[P1] (TF) Alertes Azure Monitor
+     E-mail / SMS / Teams en cas de : CPU, disque plein, service arrete,
+     VM arretee, echecs de connexion en rafale.
+
+[P2] (TF) Microsoft Sentinel (SIEM)
+     Detection et reponse : requetes, regles analytiques, incidents.
+
+[P2] (PS) Transfert des evenements Windows (Windows Event Forwarding)
+[P2] (PS) Audit avance (Advanced Audit Policy) et journalisation PowerShell
+     (Script Block Logging, Module Logging, Transcription).
+[P2] (PS) Rapport quotidien / hebdomadaire envoye par e-mail
+     (comptes inactifs, verrouillages, membres des groupes privilegies).
+[P3] (PS) Dashboard : historique des metriques et graphiques
+[P3] (TF) Tableau de bord Azure (Azure Dashboard / Workbook)
+[P3] (TF) Grafana + Prometheus / Zabbix / Nagios
+
+
+=====================================================================
+ 11. GESTION DES UTILISATEURS (CYCLE DE VIE)
+=====================================================================
+
+[P2] (PS) Import RH automatise
+     Creation / modification / desactivation des comptes depuis un CSV
+     ou une base RH (arrivee, mutation, depart).
+
+[P2] (PS) Procedure de depart (offboarding) complete
+     Desactivation, deplacement vers l'OU Disabled, retrait des groupes,
+     archivage du dossier personnel.
+
+[P2] (PS) Revue periodique des droits (attestation)
+     Rapport des membres de chaque groupe a faire valider par les managers.
+
+[P3] (PS) Generation automatique de l'e-mail, de l'alias et du profil
+[P3] (PS) Interface web d'administration deleguee (portail Helpdesk)
+[P3] (PS) Modeles d'utilisateur par service
+
+
+=====================================================================
+ 12. QUALITE, TESTS ET AUTOMATISATION
+=====================================================================
+
+[P1] (DOC) Fichier .gitignore
+     Exclure terraform.tfvars, backend.hcl, .terraform/, *.tfstate.
+
+[P1] (TF) CI/CD (GitHub Actions ou Azure DevOps)
+     terraform fmt, validate, plan automatique sur chaque Pull Request,
+     apply apres validation.
+
+[P2] (TF) Analyse de securite du code Terraform (tfsec, checkov, trivy)
+[P2] (TF) Pre-commit hooks (fmt, validate, tflint)
+[P2] (PS) Tests unitaires des scripts avec Pester
+[P2] (PS) Analyse statique des scripts avec PSScriptAnalyzer
+[P2] (PS) Configuration Desired State (DSC) ou Ansible
+     Etat souhaite declare et verifie en continu, au lieu de scripts
+     a lancer a la main.
+[P2] (TF) Environnements separes (dev / test / prod) via workspaces ou
+     dossiers, avec des variables par environnement.
+[P3] (TF) Politiques Azure (Azure Policy) : tags obligatoires, regions
+     autorisees, tailles de VM autorisees.
+[P3] (TF) Terraform : versions de providers verrouillees
+     (fichier .terraform.lock.hcl commite).
+[P3] (PS) Packer : image Windows Server "or" preconfiguree
+[P3] (DOC) Diagramme d'architecture genere automatiquement
+
+
+=====================================================================
+ 13. COUTS ET GOUVERNANCE
+=====================================================================
+
+[P1] (TF) Arret / demarrage automatique des VM (Azure Automation)
+     Eteindre les VM la nuit et le week-end en lab : gros gain de cout.
+
+[P2] (TF) Budgets et alertes de cout Azure
+[P2] (TF) Tags obligatoires (proprietaire, centre de cout, environnement)
+[P2] (TF) Bastion en SKU Developer ou arret hors sessions
+     Bastion Basic represente l'essentiel du cout du lab.
+[P3] (TF) Instances reservees ou Savings Plan pour la production
+[P3] (TF) Rapport d'inventaire des ressources
+
+
+=====================================================================
+ 14. SERVICES ANNEXES QUE L'ON PEUT AJOUTER
+=====================================================================
+
+[P2] (PS) Serveur DNS secondaire / conditional forwarders
+[P2] (PS) Serveur NPS (RADIUS) pour Wi-Fi / VPN avec authentification AD
+[P2] (PS) Serveur web / intranet (IIS) avec HTTPS et authentification Windows
+[P2] (PS) Remote Desktop Services (bureaux et applications publiees)
+[P2] (PS) Serveur de base de donnees (SQL Server) joint au domaine
+[P3] (PS) Serveur de messagerie (Exchange) ou passage a Microsoft 365
+[P3] (PS) Serveur de fichiers de deploiement (WDS / MDT)
+[P3] (PS) Serveur de supervision (Zabbix / PRTG)
+[P3] (PS) Serveur Linux joint au domaine (SSSD / realmd)
+[P3] (PS) Serveur de journaux Syslog / Graylog
+[P3] (PS) Sites et services AD : sous-reseaux et sites geographiques
+
+
+=====================================================================
+ 15. EXPERIENCE D'UTILISATION DES SCRIPTS
+=====================================================================
+
+[P2] (PS) Mode simulation (-WhatIf) dans chaque script
+[P2] (PS) Menu interactif pour lancer les etapes
+[P2] (PS) Rapport HTML final regroupant les resultats de tous les scripts
+[P2] (PS) Verification des prerequis avant chaque script
+     (etape precedente faite ? disque present ? AD disponible ?)
+[P3] (PS) Script de "nettoyage" / retour arriere par service
+[P3] (PS) Journal au format JSON pour exploitation automatique
+[P3] (PS) Mots de passe generes exportes vers Key Vault plutot que dans
+     un fichier CSV local (generated-credentials.csv).
+[P3] (PS) Envoi automatique du dossier scripts vers la VM
+     (Azure Run Command, ou Bastion Standard avec transfert de fichiers).
+
+
+=====================================================================
+ 16. PLAN D'EVOLUTION SUGGERE
+=====================================================================
+
+ Phase 1 - Fondations solides  (priorite P1, quelques jours)
+   - .gitignore + CI/CD avec validate/plan
+   - Second DC actif + zones de disponibilite
+   - Azure Backup (coffre Recovery Services)
+   - Log Analytics + alertes de base
+   - Serveur de fichiers separe du controleur de domaine
+   - Arret automatique des VM (cout)
+
+ Phase 2 - Securite et gouvernance  (P1/P2)
+   - Baselines de securite (CIS / Microsoft), protocoles obsoletes
+   - Defender for Cloud, PingCastle, Corbeille AD
+   - Tiering d'administration, gMSA, Protected Users
+   - WSUS ou Azure Update Manager
+   - Sous-reseaux segmentes + NSG par sous-reseau
+
+ Phase 3 - Hybride et industrialisation  (P2/P3)
+   - VPN, Entra Connect, MFA
+   - PKI interne, LDAPS
+   - DSC/Ansible, tests Pester, PSScriptAnalyzer
+   - Sentinel, rapports automatiques, import RH
+
+=====================================================================
+ NOTE : ce fichier est une liste d'idees, pas une promesse de
+ faisabilite immediate. Chaque element doit etre teste dans un
+ environnement de lab avant toute utilisation en production.
+=====================================================================

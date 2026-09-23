@@ -91,7 +91,7 @@ variable "vm_size" {
 }
 
 variable "admin_username" {
-  description = "Nom du compte administrateur local ET du compte Administrateur de domaine créé par Install-ADDSForest."
+  description = "Nom du compte administrateur local des VM (devient aussi l'administrateur du domaine après la promotion faite par scripts/01-active-directory)."
   type        = string
   default     = "estiamadmin"
 }
@@ -139,58 +139,11 @@ variable "accept_client_marketplace_terms" {
 }
 
 # -----------------------------------------------------------------------------
-# Active Directory
-# -----------------------------------------------------------------------------
-
-variable "ad_domain_name" {
-  description = "Nom de domaine Active Directory (FQDN)."
-  type        = string
-  default     = "estiam.local"
-}
-
-variable "ad_netbios_name" {
-  description = "Nom NetBIOS du domaine."
-  type        = string
-  default     = "ESTIAM"
-}
-
-variable "departments" {
-  description = "Liste des services/OU métier de l'entreprise."
-  type        = list(string)
-  default     = ["Direction", "IT", "RH", "Finance", "Marketing", "Administration"]
-}
-
-# -----------------------------------------------------------------------------
-# DHCP
-# -----------------------------------------------------------------------------
-
-variable "enable_dhcp" {
-  description = "Active le rôle DHCP sur SRV-AD01 (section 6 du cahier des charges)."
-  type        = bool
-  default     = true
-}
-
-variable "dhcp_scope_start" {
-  type    = string
-  default = "10.10.10.100"
-}
-
-variable "dhcp_scope_end" {
-  type    = string
-  default = "10.10.10.200"
-}
-
-variable "dhcp_default_gateway" {
-  type    = string
-  default = "10.10.10.1"
-}
-
-# -----------------------------------------------------------------------------
 # Résilience / sécurité avancée
 # -----------------------------------------------------------------------------
 
 variable "enable_second_dc" {
-  description = "Déploie un second contrôleur de domaine (DC02) pour éliminer le point de défaillance unique. Désactivé par défaut : un seul DC (SRV-AD01) suffit pour le lab et évite de dépasser le quota de coeurs standardBSFamily de l'abonnement."
+  description = "Déploie la VM DC02 (à promouvoir ensuite avec scripts/02-second-dc). Désactivé par défaut : un seul DC (SRV-AD01) suffit pour le lab et évite de dépasser le quota de coeurs standardBSFamily de l'abonnement."
   type        = bool
   default     = false
 }
@@ -206,7 +159,7 @@ variable "dc02_private_ip" {
 }
 
 variable "enable_bitlocker" {
-  description = "Active BitLocker (Trusted Launch : vTPM + Secure Boot) sur les VM, avec sauvegarde des clés de récupération dans Active Directory."
+  description = "Active Trusted Launch (vTPM + Secure Boot) sur les VM, prérequis de BitLocker (l'activation de BitLocker se fait via scripts/20-client-pc)."
   type        = bool
   default     = true
 }

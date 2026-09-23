@@ -1,0 +1,107 @@
+=====================================================================
+ ESTIAM - ORDRE D'EXECUTION DES SCRIPTS
+ (a lancer APRES "terraform apply", en PowerShell ADMINISTRATEUR)
+=====================================================================
+
+Legende :  [SRV] = sur la VM Windows Server (SRV-AD01)
+           [PC ] = sur la VM cliente (PC-CLIENT01)
+           [DC2] = sur DC02 (uniquement si enable_second_dc = true)
+
+Avant de commencer, sur chaque VM :
+  - copier le dossier "scripts" (avec 00-common et le dossier du script)
+  - se placer dedans :  cd C:\...\scripts
+  - si PowerShell bloque :  Set-ExecutionPolicy -Scope Process Bypass
+
+
+---------------------------------------------------------------------
+ PARTIE A - SERVEUR (SRV-AD01)  -  compte : estiamadmin (local)
+---------------------------------------------------------------------
+
+ 1. [SRV] .\01-active-directory\01-install-ad.ps1
+          -> installe AD DS + DNS et cree le domaine
+          -> demande le mot de passe DSRM
+          -> LE SERVEUR REDEMARRE TOUT SEUL
+
+          >>> Attendre 5 a 10 minutes apres le redemarrage.
+          >>> Se reconnecter avec :  ESTIAM\estiamadmin
+
+
+---------------------------------------------------------------------
+ PARTIE B - SERVEUR (SRV-AD01)  -  compte : ESTIAM\estiamadmin
+---------------------------------------------------------------------
+
+ Option rapide : lancer  .\Run-All.ps1  (enchaine les etapes 2 a 18)
+ Sinon, un par un, dans cet ordre :
+
+ 2. [SRV] .\03-dns\03-configure-dns.ps1
+ 3. [SRV] .\04-dhcp\04-configure-dhcp.ps1
+ 4. [SRV] .\05-organizational-units\05-create-ous.ps1
+ 5. [SRV] .\06-groups\06-create-groups.ps1
+ 6. [SRV] .\07-users\07-create-users.ps1
+ 7. [SRV] .\08-file-shares\08-create-shares.ps1
+ 8. [SRV] .\09-ntfs-permissions\09-configure-permissions.ps1
+ 9. [SRV] .\10-gpo\10-create-gpos.ps1
+10. [SRV] .\11-fsrm\11-configure-fsrm.ps1
+11. [SRV] .\12-shadow-copies\12-configure-shadowcopies.ps1
+12. [SRV] .\13-print-server\13-configure-print-server.ps1
+13. [SRV] .\14-applocker\14-configure-applocker.ps1
+14. [SRV] .\15-laps\15-configure-laps.ps1
+15. [SRV] .\16-audit-delegation\16-configure-audit-delegation.ps1
+16. [SRV] .\17-backup\17-configure-backup.ps1
+17. [SRV] .\18-monitoring\18-configure-monitoring.ps1
+
+ En cas d'erreur avec Run-All : corriger puis reprendre, par exemple
+   .\Run-All.ps1 -From 10
+
+
+---------------------------------------------------------------------
+ PARTIE C - POSTE CLIENT (PC-CLIENT01)
+---------------------------------------------------------------------
+ Prerequis : les parties A et B ci-dessus sont terminees.
+ Dossiers a avoir sur le PC : scripts\00-common et scripts\20-client-pc
+
+18. [PC ] .\20-client-pc\01-join-domain.ps1
+          -> compte local estiamadmin pour ouvrir la session
+          -> demande ESTIAM\estiamadmin pour la jonction
+          -> LE PC REDEMARRE TOUT SEUL
+
+          >>> Se reconnecter sur le PC avec :  ESTIAM\estiamadmin
+
+19. [PC ] .\20-client-pc\02-client-hardening.ps1
+          -> gpupdate, AppLocker, Defender, BitLocker
+
+
+---------------------------------------------------------------------
+ PARTIE D - VERIFICATION FINALE (SRV-AD01)
+---------------------------------------------------------------------
+
+20. [SRV] .\19-security-checks\19-run-security-checks.ps1
+          -> rapport PASS/FAIL (~25 controles)
+          -> resultat aussi sur  http://10.10.10.10/estiam/
+
+
+---------------------------------------------------------------------
+ OPTIONNEL - SECOND CONTROLEUR DE DOMAINE (DC02)
+---------------------------------------------------------------------
+ Uniquement si enable_second_dc = true dans Terraform.
+ A faire une fois la PARTIE A terminee et SRV-AD01 operationnel
+ (par exemple juste apres la partie B).
+ Dossiers a avoir sur DC02 : scripts\00-common et scripts\02-second-dc
+
+ *  [DC2] .\02-second-dc\02-install-dc02.ps1
+          -> demande ESTIAM\estiamadmin et le mot de passe DSRM
+          -> DC02 REDEMARRE TOUT SEUL
+
+
+---------------------------------------------------------------------
+ A SAVOIR
+---------------------------------------------------------------------
+ - Tous les scripts sont rejouables sans danger (idempotents).
+ - Journal de tout ce qui s'execute :
+       C:\ESTIAM\Logs\estiam-bootstrap.log
+ - Le poste client peut etre joint plus tot : des que l'etape 4
+   (05-create-ous.ps1) est faite. Le durcissement (etape 19) exige,
+   lui, que l'etape 9 (10-create-gpos.ps1) soit faite.
+ - Mots de passe generes pour les utilisateurs :
+       C:\ESTIAM\generated-credentials.csv  (sur SRV-AD01)
+=====================================================================
